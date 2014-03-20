@@ -33,26 +33,51 @@
  */
 
 #include <linux/i2c-dev.h>
+#include <fcntl.h>
+#include "ros/ros.h"
 #include "i2c.h"
 
 namespace hw_comm {
 namespace i2c {
 
+namespace {
+
+const char* const NAME = "HwCommI2C";
+
+} // namespace
+
 HwCommI2C::HwCommI2C(const char* dev_name)
   : fd_(-1)
-{}
-
-HwCommI2C::~HwCommI2C()
-{}
-
-uint32_t HwCommI2C::writeByte(const uint32_t dev_addr, const uint32_t reg_addr, const uint32_t value)
 {
-  return 0;
+  fd_ = open(dev_name, O_RDWR);
+  if (fd_ < 0) {
+    ROS_ERROR_NAMED(NAME, "open i2c device error: %s\n", strerror(errno));
+  }
 }
 
-uint32_t HwCommI2C::readByte(const uint32_t dev_addr, const uint32_t reg_addr)
+HwCommI2C::~HwCommI2C()
 {
-  return 0;
+  if (close(fd_) < 0) {
+    ROS_ERROR_NAMED(NAME, "close i2c device error: %s\n", strerror(errno));
+  }
+}
+
+int32_t HwCommI2C::writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value)
+{
+  if (ioctl(fd_, I2C_SLAVE, dev_addr) < 0) {
+    ROS_ERROR_NAMED(NAME, "ioctl i2c device error: %s\n", strerror(errno));
+    return -1;
+  }
+  return i2c_smbus_write_byte_data(fd_, reg_addr, value);  
+}
+
+uint8_t HwCommI2C::readByte(const uint8_t dev_addr, const uint8_t reg_addr)
+{
+  if (ioctl(fd_, I2C_SLAVE, dev_addr) < 0) {
+    ROS_ERROR_NAMED(NAME, "ioctl i2c device error: %s\n", strerror(errno));
+    return -1;
+  }
+  return i2c_smbus_read_byte_data(fd_, dev_addr);
 }
 
 } // namespace i2c

@@ -35,8 +35,6 @@
 #ifndef HW_COMM_I2C_H
 #define HW_COMM_I2C_H
 
-#include "ros/types.h"
-
 namespace hw_comm {
 namespace i2c {
 
@@ -45,8 +43,8 @@ class HwCommI2CBase
 public:
   virtual ~HwCommI2CBase() {}
 
-  virtual uint32_t writeByte(const uint32_t dev_addr, const uint32_t reg_addr, const uint32_t value) = 0;
-  virtual uint32_t readByte(const uint32_t dev_addr, const uint32_t reg_addr) = 0;
+  virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value) = 0;
+  virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr) = 0;
 };
 
 class HwCommI2C : public HwCommI2CBase
@@ -55,11 +53,11 @@ public:
   explicit HwCommI2C(const char* dev_name);
   virtual ~HwCommI2C();
 
-  virtual uint32_t writeByte(const uint32_t dev_addr, const uint32_t reg_addr, const uint32_t value);
-  virtual uint32_t readByte(const uint32_t dev_addr, const uint32_t reg_addr);
+  virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value);
+  virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr);
 
 private:
-  uint32_t fd_;
+  int32_t fd_;
 };
 
 } // namespace i2c
