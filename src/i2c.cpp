@@ -86,7 +86,7 @@ int32_t HwCommI2C::writeByte(const uint8_t dev_addr, const uint8_t reg_addr, con
 
 uint8_t HwCommI2C::readByte(const uint8_t dev_addr, const uint8_t reg_addr)
 {
-    return (0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_byte_data(fd_, dev_addr_) : -1;
+    return (0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_byte_data(fd_, reg_addr) : -1;
 }
 
 } // namespace i2c
