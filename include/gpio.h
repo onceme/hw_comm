@@ -41,7 +41,7 @@ namespace gpio {
 class HwCommGPIOBase
 {
 public:
-  virtual ~HwCommGPIOBase() {}
+    virtual ~HwCommGPIOBase() {}
 };
 
 } // namespace gpio

@@ -41,23 +41,23 @@ namespace i2c {
 class HwCommI2CBase
 {
 public:
-  virtual ~HwCommI2CBase() {}
+    virtual ~HwCommI2CBase() {}
 
-  virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value) = 0;
-  virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr) = 0;
+    virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value) = 0;
+    virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr) = 0;
 };
 
 class HwCommI2C : public HwCommI2CBase
 {
 public:
-  explicit HwCommI2C(const char* dev_name);
-  virtual ~HwCommI2C();
+    explicit HwCommI2C(const char* dev_name);
+    virtual ~HwCommI2C();
 
-  virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value);
-  virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr);
+    virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value);
+    virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr);
 
 private:
-  int32_t fd_;
+    int32_t fd_;
 };
 
 } // namespace i2c
