@@ -58,6 +58,7 @@ public:
 
 private:
     int32_t fd_;
+    uint8_t dev_addr_;
 };
 
 } // namespace i2c
