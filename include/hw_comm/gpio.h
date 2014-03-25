@@ -38,10 +38,46 @@
 namespace hw_comm {
 namespace gpio {
 
+typedef enum GPIODirectionTag {
+    GPIO_DIRE_IN = 0,
+    GPIO_DIRE_OUT
+} GPIODirection;
+
+typedef enum GPIOEdgeTag {
+    GPIO_EDGE_RAISING = 0,
+    GPIO_EDGE_FALLING,
+    GPIO_EDGE_BOTH
+} GPIOEdge;
+
+typedef enum GPIOValueTag {
+    GPIO_VALUE_LOW = 0,
+    GPIO_VALUE_HIGH
+} GPIOValue;
+
 class HwCommGPIOBase
 {
 public:
     virtual ~HwCommGPIOBase() {}
+
+    virtual int32_t setDirection(const GPIODirection& direction) = 0;
+    virtual int32_t setEdge(const GPIOEdge& edge) = 0;
+    virtual int32_t setValue(const GPIOValue& value) = 0;
+    virtual int32_t getValue(GPIOValue& value) = 0;
+};
+
+class HwCommGPIO : public HwCommGPIOBase
+{
+public:
+    explicit HwCommGPIO(const uint32_t& gpio);
+    virtual ~HwCommGPIO();
+
+    virtual int32_t setDirection(const GPIODirection& direction);
+    virtual int32_t setEdge(const GPIOEdge& edge);
+    virtual int32_t setValue(const GPIOValue& value);
+    virtual int32_t getValue(GPIOValue& value);
+
+private:
+    uint32_t gpio_;
 };
 
 } // namespace gpio
