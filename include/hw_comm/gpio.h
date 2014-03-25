@@ -35,6 +35,8 @@
 #ifndef HW_COMM_GPIO_H
 #define HW_COMM_GPIO_H
 
+#include <memory>
+
 namespace hw_comm {
 namespace gpio {
 
@@ -78,7 +80,13 @@ public:
     virtual int32_t getValue(GPIOValue& value);
 
 private:
+    HwCommGPIO& operator=(const HwCommGPIO& other);
+    HwCommGPIO(const HwCommGPIO& other);
+
     uint32_t gpio_;
+
+    class IrqMonitor;
+    std::auto_ptr<IrqMonitor> irq_monitor_;
 };
 
 } // namespace gpio

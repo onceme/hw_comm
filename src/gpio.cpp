@@ -32,8 +32,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fcntl.h>
 #include <ros/console.h>
+#include <fcntl.h>
 #include "hw_comm/gpio.h"
 
 namespace hw_comm {
@@ -108,8 +108,23 @@ int32_t unexportGPIO(const uint32_t gpio)
 
 } // namespace
 
+
+class HwCommGPIO::IrqMonitor
+{
+public:
+    IrqMonitor()
+    {}
+
+    ~IrqMonitor()
+    {}
+
+private:
+
+};
+
 HwCommGPIO::HwCommGPIO(const uint32_t& gpio)
-    : gpio_(gpio)
+    : gpio_(gpio),
+      irq_monitor_(0)
 {
     exportGPIO(gpio_);
 }
