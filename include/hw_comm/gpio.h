@@ -44,9 +44,10 @@ typedef enum GPIODirectionTag {
 } GPIODirection;
 
 typedef enum GPIOEdgeTag {
-    GPIO_EDGE_RAISING = 0,
+    GPIO_EDGE_RISING = 0,
     GPIO_EDGE_FALLING,
-    GPIO_EDGE_BOTH
+    GPIO_EDGE_BOTH,
+    GPIO_EDGE_NONE
 } GPIOEdge;
 
 typedef enum GPIOValueTag {

@@ -145,9 +145,10 @@ int32_t HwCommGPIO::setEdge(const GPIOEdge& edge)
         return -1;
     }
 
-    int32_t ret = (GPIO_EDGE_RAISING == edge) ? doWrite(fd, "raising", 8) :
+    int32_t ret = (GPIO_EDGE_RISING  == edge) ? doWrite(fd, "rising", 8)  :
                   (GPIO_EDGE_FALLING == edge) ? doWrite(fd, "falling", 8) :
-                  (GPIO_EDGE_BOTH    == edge) ? doWrite(fd, "both", 5)    : -1;
+                  (GPIO_EDGE_BOTH    == edge) ? doWrite(fd, "both", 5)    :
+                  (GPIO_EDGE_NONE    == edge) ? doWrite(fd, "none", 5)    : -1;
     if (ret < 0) {
         ROS_ERROR_NAMED(NAME, "gpio %d set edge error: %s\n", gpio_, strerror(errno));
     }
