@@ -33,6 +33,7 @@
  */
 
 #include <sys/syscall.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <mqueue.h>
 #include <poll.h>
@@ -98,11 +99,15 @@ int32_t manipulateGPIOFd(const uint32_t gpio, const char* const op)
 
 int32_t unexportGPIO(const uint32_t gpio)
 {
-    char buf[MAX_BUF_LEN] = {0};
-    snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/unexport");
-    char gpio_fd_name[MAX_BUF_LEN] = {0};
-    snprintf(gpio_fd_name, sizeof(gpio_fd_name), "%s/%d", SYSFS_GPIO_DIR, gpio);
-    return (0 == access(gpio_fd_name, F_OK)) ? manipulateGPIOFd(gpio, buf) : 0;
+    char gpio_name[MAX_BUF_LEN] = {0};
+    snprintf(gpio_name, sizeof(gpio_name), "%s/gpio%d", SYSFS_GPIO_DIR, gpio);
+    struct stat sb;
+    if ((0 == stat(gpio_name, &sb)) && (S_ISDIR(sb.st_mode))) {
+        char buf[MAX_BUF_LEN] = {0};
+        snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/unexport");
+        return manipulateGPIOFd(gpio, buf);
+    }
+    return 0;
 }
 
 int32_t exportGPIO(const uint32_t gpio)
