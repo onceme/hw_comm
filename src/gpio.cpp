@@ -32,8 +32,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ros/console.h>
+#include <sys/syscall.h>
 #include <fcntl.h>
+#include <mqueue.h>
+#include <boost/thread/thread.hpp>
+#include <ros/console.h>
 #include "hw_comm/gpio.h"
 
 namespace hw_comm {
@@ -108,18 +111,104 @@ int32_t unexportGPIO(const uint32_t gpio)
 
 } // namespace
 
-
 class HwCommGPIO::IrqMonitor
 {
 public:
-    IrqMonitor()
-    {}
-
+    explicit IrqMonitor(const uint32_t& gpio)
+        : irq_handler_list_(),
+          functor_(),
+          mutex_(),
+          irq_chn_name_(),
+          mqd_()
+    {
+        memset(irq_chn_name_, 0, MAX_BUF_LEN);
+        snprintf(irq_chn_name_, MAX_BUF_LEN, "mq_%d_%p_%d_%d", gpio, this, getpid, syscall(SYS_gettid));
+        mqd_ = mq_open(irq_chn_name_, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, 0);
+        if (mqd_ < 0) {
+            ROS_ERROR_NAMED(NAME, "irq monitor mq open error: %s\n", strerror(errno));
+        }
+    }
     ~IrqMonitor()
-    {}
+    {
+        if ((0 != mq_unlink(irq_chn_name_)) || (errno != ENOENT)) {
+            ROS_ERROR_NAMED(NAME, "irq monitor mq unlink error: %s\n", strerror(errno));
+        }
+
+        if ((-1 != mqd_) && (0 != mq_close(mqd_))) {
+            ROS_ERROR_NAMED(NAME, "irq monitor mq close error: %s\n", strerror(errno));
+        }
+    }
+
+    virtual void addIrqHandler(HwCommGPIOIrqHandler& handler)
+    {
+        boost::lock_guard<boost::mutex> lock(mutex_);
+        for (IrqHandlers::const_iterator cit = irq_handler_list_.begin();
+             cit != irq_handler_list_.end();
+             ++cit) {
+            if (*cit == &handler) {
+                return;
+            }
+        }
+        irq_handler_list_.push_back(&handler);
+        if (!functor_.get()) {
+            functor_.reset(new Functor(irq_chn_name_));
+        }
+    }
+
+    virtual void delIrqHandler(HwCommGPIOIrqHandler& handler)
+    {
+        boost::lock_guard<boost::mutex> lock(mutex_);
+        for (IrqHandlers::iterator it = irq_handler_list_.begin();
+             it != irq_handler_list_.end();
+             ++it) {
+            if (*it == &handler) {
+                if (1 == irq_handler_list_.size()) {
+                    functor_.reset();
+                }
+                irq_handler_list_.erase(it);
+                return;
+            }
+        }
+    }
+
+    virtual void waitIrq()
+    {
+        char* msg_ptr(0);
+        uint32_t msg_len(0);
+        while (1) {
+            if (mq_receive(mqd_, msg_ptr, msg_len, 0) < 0) {
+                ROS_ERROR_NAMED(NAME, "irq monitor mq receive error: %s\n", strerror(errno));
+                continue;
+            }
+            {
+                boost::lock_guard<boost::mutex> lock(mutex_);
+                for (IrqHandlers::const_iterator cit = irq_handler_list_.begin();
+                     cit != irq_handler_list_.end();
+                     ++cit) {
+                    (*cit)->handleIrq();
+                }
+            }
+        }
+    }
 
 private:
+    typedef std::vector<HwCommGPIOIrqHandler*> IrqHandlers;
+    IrqHandlers irq_handler_list_;
 
+    class Functor
+    {
+    public:
+        Functor(const char* irq_chn_name)
+        {}
+
+        void operator()()
+        {
+        }
+    };
+    std::auto_ptr<Functor> functor_;
+    boost::mutex mutex_;
+    char irq_chn_name_[MAX_BUF_LEN];
+    mqd_t mqd_;
 };
 
 HwCommGPIO::HwCommGPIO(const uint32_t& gpio)
@@ -127,6 +216,7 @@ HwCommGPIO::HwCommGPIO(const uint32_t& gpio)
       irq_monitor_(0)
 {
     exportGPIO(gpio_);
+//    fprintf(stderr, "tid=%d\n", (int)syscall(SYS_gettid));
 }
 
 HwCommGPIO::~HwCommGPIO()
@@ -209,6 +299,21 @@ int32_t HwCommGPIO::getValue(GPIOValue& value)
 
     close(fd);
     return ((ret < 0) ? -1 : 0);
+}
+
+void HwCommGPIO::addIrqHandler(HwCommGPIOIrqHandler& handler)
+{
+    irq_monitor_->addIrqHandler(handler);
+}
+
+void HwCommGPIO::delIrqHandler(HwCommGPIOIrqHandler& handler)
+{
+    irq_monitor_->delIrqHandler(handler);
+}
+
+void HwCommGPIO::waitIrq()
+{
+    irq_monitor_->waitIrq();
 }
 
 } // namespace gpio

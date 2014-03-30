@@ -32,9 +32,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ros/console.h>
 #include <linux/i2c-dev.h>
 #include <fcntl.h>
+#include <ros/console.h>
 #include "hw_comm/i2c.h"
 
 namespace hw_comm {

@@ -35,27 +35,30 @@
 #ifndef HW_COMM_GPIO_H
 #define HW_COMM_GPIO_H
 
-#include <memory>
-
 namespace hw_comm {
 namespace gpio {
 
-typedef enum GPIODirectionTag {
+typedef enum {
     GPIO_DIRE_IN = 0,
     GPIO_DIRE_OUT
 } GPIODirection;
 
-typedef enum GPIOEdgeTag {
+typedef enum {
     GPIO_EDGE_RISING = 0,
     GPIO_EDGE_FALLING,
     GPIO_EDGE_BOTH,
     GPIO_EDGE_NONE
 } GPIOEdge;
 
-typedef enum GPIOValueTag {
+typedef enum {
     GPIO_VALUE_LOW = 0,
     GPIO_VALUE_HIGH
 } GPIOValue;
+
+struct HwCommGPIOIrqHandler
+{
+    virtual void handleIrq() = 0;
+};
 
 class HwCommGPIOBase
 {
@@ -66,6 +69,10 @@ public:
     virtual int32_t setEdge(const GPIOEdge& edge) = 0;
     virtual int32_t setValue(const GPIOValue& value) = 0;
     virtual int32_t getValue(GPIOValue& value) = 0;
+
+    virtual void addIrqHandler(HwCommGPIOIrqHandler& handler) = 0;
+    virtual void delIrqHandler(HwCommGPIOIrqHandler& handler) = 0;
+    virtual void waitIrq() = 0;
 };
 
 class HwCommGPIO : public HwCommGPIOBase
@@ -79,9 +86,13 @@ public:
     virtual int32_t setValue(const GPIOValue& value);
     virtual int32_t getValue(GPIOValue& value);
 
+    virtual void addIrqHandler(HwCommGPIOIrqHandler& handler);
+    virtual void delIrqHandler(HwCommGPIOIrqHandler& handler);
+    virtual void waitIrq();
+
 private:
-    HwCommGPIO& operator=(const HwCommGPIO& other);
     HwCommGPIO(const HwCommGPIO& other);
+    HwCommGPIO& operator=(const HwCommGPIO& other);
 
     uint32_t gpio_;
 
