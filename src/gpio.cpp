@@ -115,15 +115,16 @@ class HwCommGPIO::IrqMonitor
 {
 public:
     explicit IrqMonitor(const uint32_t& gpio)
-        : irq_handler_list_(),
-          functor_(),
+        : gpio_(gpio),
+          irq_handler_list_(),
+          monitor_entity_(),
           mutex_(),
           irq_chn_name_(),
           mqd_()
     {
         memset(irq_chn_name_, 0, MAX_BUF_LEN);
         snprintf(irq_chn_name_, MAX_BUF_LEN, "mq_%d_%p_%d_%d", gpio, this, getpid, syscall(SYS_gettid));
-        mqd_ = mq_open(irq_chn_name_, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, 0);
+        mqd_ = mq_open(irq_chn_name_, O_RDONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, 0);
         if (mqd_ < 0) {
             ROS_ERROR_NAMED(NAME, "irq monitor mq open error: %s\n", strerror(errno));
         }
@@ -150,8 +151,8 @@ public:
             }
         }
         irq_handler_list_.push_back(&handler);
-        if (!functor_.get()) {
-            functor_.reset(new Functor(irq_chn_name_));
+        if (!monitor_entity_.get()) {
+            monitor_entity_.reset(new MonitorEntity(gpio_, irq_chn_name_));
         }
     }
 
@@ -163,7 +164,7 @@ public:
              ++it) {
             if (*it == &handler) {
                 if (1 == irq_handler_list_.size()) {
-                    functor_.reset();
+                    monitor_entity_.reset();
                 }
                 irq_handler_list_.erase(it);
                 return;
@@ -192,20 +193,69 @@ public:
     }
 
 private:
+    IrqMonitor(const IrqMonitor& other);
+    IrqMonitor& operator=(const IrqMonitor& other);
+
+    const uint32_t& gpio_;
     typedef std::vector<HwCommGPIOIrqHandler*> IrqHandlers;
     IrqHandlers irq_handler_list_;
 
-    class Functor
+    class MonitorEntity
     {
     public:
-        Functor(const char* irq_chn_name)
-        {}
-
-        void operator()()
+        MonitorEntity(const uint32_t& gpio, const char* irq_chn_name)
+            : gpio_(gpio),
+              thread_(),
+              loop_(true),
+              entity_mqd_()
         {
+            entity_mqd_ = mq_open(irq_chn_name, O_WRONLY | O_CREAT | O_NONBLOCK, S_IRWXU | S_IRWXG | S_IRWXO, 0);
+            if (entity_mqd_ < 0) {
+                ROS_ERROR_NAMED(NAME, "irq monitor entity mq open error: %s\n", strerror(errno));
+            }
+            thread_ = boost::thread(&MonitorEntity::threadFunc, this);
         }
+        ~MonitorEntity()
+        {
+            // TODO 'loop_' is not thread safe
+            loop_ = false;
+            thread_.join();
+
+            if ((-1 != entity_mqd_) && (0 != mq_close(entity_mqd_))) {
+                ROS_ERROR_NAMED(NAME, "irq monitor entity mq close error: %s\n", strerror(errno));
+            }
+        }
+
+        void threadFunc()
+        {
+            // TODO impl epoll
+            int32_t fd = doOpen(gpio_, "/value", O_RDONLY);
+            if (fd < 0) {
+                ROS_ERROR_NAMED(NAME, "monitor entity open gpio %d value error: %s\n", gpio_, strerror(errno));
+                return;
+            }
+
+            char val('0');
+            while (loop_) {
+                if (read(fd, &val, 1) < 0) {
+                    ROS_ERROR_NAMED(NAME, "monitor entity read gpio %d value error: %s\n", gpio_, strerror(errno));
+                    continue;
+                }
+
+                if (mq_send(entity_mqd_, 0, 0, 0) < 0) {
+                    ROS_ERROR_NAMED(NAME, "monitor entity mq send error: %s\n", strerror(errno));
+                }
+            }
+
+            close(fd);
+        }
+    private:
+        const uint32_t& gpio_;
+        boost::thread thread_;
+        bool loop_;
+        mqd_t entity_mqd_;
     };
-    std::auto_ptr<Functor> functor_;
+    std::auto_ptr<MonitorEntity> monitor_entity_;
     boost::mutex mutex_;
     char irq_chn_name_[MAX_BUF_LEN];
     mqd_t mqd_;
@@ -216,7 +266,6 @@ HwCommGPIO::HwCommGPIO(const uint32_t& gpio)
       irq_monitor_(0)
 {
     exportGPIO(gpio_);
-//    fprintf(stderr, "tid=%d\n", (int)syscall(SYS_gettid));
 }
 
 HwCommGPIO::~HwCommGPIO()

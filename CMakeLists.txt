@@ -8,6 +8,7 @@ find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(catkin REQUIRED COMPONENTS rosconsole)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -76,8 +77,8 @@ find_package(catkin REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES hw_comm
+  INCLUDE_DIRS include
+  LIBRARIES hw_comm
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -91,13 +92,18 @@ catkin_package(
 include_directories(include)
 
 ## Declare a cpp library
-add_library(${PROJECT_NAME}
+add_library(hw_comm
   src/i2c.cpp
   src/gpio.cpp
 )
+target_link_libraries(hw_comm ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 # add_executable(hw_comm_node src/hw_comm_node.cpp)
+add_executable(hw_comm_test
+  src/hw_comm_test.cpp
+)
+target_link_libraries(hw_comm_test hw_comm)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
