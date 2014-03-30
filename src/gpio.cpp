@@ -35,6 +35,7 @@
 #include <sys/syscall.h>
 #include <fcntl.h>
 #include <mqueue.h>
+#include <poll.h>
 #include <boost/thread/thread.hpp>
 #include <ros/console.h>
 #include "hw_comm/gpio.h"
@@ -95,17 +96,21 @@ int32_t manipulateGPIOFd(const uint32_t gpio, const char* const op)
     return 0;
 }
 
-int32_t exportGPIO(const uint32_t gpio)
-{
-    char buf[MAX_BUF_LEN] = {0};
-    snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/export");
-    return manipulateGPIOFd(gpio, buf);
-}
-
 int32_t unexportGPIO(const uint32_t gpio)
 {
     char buf[MAX_BUF_LEN] = {0};
     snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/unexport");
+    char gpio_fd_name[MAX_BUF_LEN] = {0};
+    snprintf(gpio_fd_name, sizeof(gpio_fd_name), "%s/%d", SYSFS_GPIO_DIR, gpio);
+    return (0 == access(gpio_fd_name, F_OK)) ? manipulateGPIOFd(gpio, buf) : 0;
+}
+
+int32_t exportGPIO(const uint32_t gpio)
+{
+    unexportGPIO(gpio);
+
+    char buf[MAX_BUF_LEN] = {0};
+    snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/export");
     return manipulateGPIOFd(gpio, buf);
 }
 
@@ -123,7 +128,7 @@ public:
           mqd_()
     {
         memset(irq_chn_name_, 0, MAX_BUF_LEN);
-        snprintf(irq_chn_name_, MAX_BUF_LEN, "mq_%d_%p_%d_%d", gpio, this, getpid, syscall(SYS_gettid));
+        snprintf(irq_chn_name_, MAX_BUF_LEN, "/mq_%d_%p_%d_%d", gpio, this, getpid, syscall(SYS_gettid));
         mqd_ = mq_open(irq_chn_name_, O_RDONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, 0);
         if (mqd_ < 0) {
             ROS_ERROR_NAMED(NAME, "irq monitor mq open error: %s\n", strerror(errno));
@@ -174,8 +179,10 @@ public:
 
     virtual void waitIrq()
     {
-        char* msg_ptr(0);
-        uint32_t msg_len(0);
+        char msg_ptr[MAX_BUF_LEN] = {0};
+        // TODO set proper msg_len
+        uint32_t msg_len(MAX_BUF_LEN*1024);
+        // TODO make it can be stopped
         while (1) {
             if (mq_receive(mqd_, msg_ptr, msg_len, 0) < 0) {
                 ROS_ERROR_NAMED(NAME, "irq monitor mq receive error: %s\n", strerror(errno));
@@ -209,7 +216,7 @@ private:
               loop_(true),
               entity_mqd_()
         {
-            entity_mqd_ = mq_open(irq_chn_name, O_WRONLY | O_CREAT | O_NONBLOCK, S_IRWXU | S_IRWXG | S_IRWXO, 0);
+            entity_mqd_ = mq_open(irq_chn_name, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, 0);
             if (entity_mqd_ < 0) {
                 ROS_ERROR_NAMED(NAME, "irq monitor entity mq open error: %s\n", strerror(errno));
             }
@@ -229,21 +236,35 @@ private:
         void threadFunc()
         {
             // TODO impl epoll
-            int32_t fd = doOpen(gpio_, "/value", O_RDONLY);
+            int32_t fd = doOpen(gpio_, "/value", O_RDONLY | O_NONBLOCK);
             if (fd < 0) {
                 ROS_ERROR_NAMED(NAME, "monitor entity open gpio %d value error: %s\n", gpio_, strerror(errno));
                 return;
             }
 
+            struct pollfd fdset[1];
+            memset(fdset, 0, sizeof(fdset));
+
             char val('0');
             while (loop_) {
-                if (read(fd, &val, 1) < 0) {
-                    ROS_ERROR_NAMED(NAME, "monitor entity read gpio %d value error: %s\n", gpio_, strerror(errno));
+                fdset[0].fd = fd;
+                fdset[0].events = POLLPRI;
+
+                if (poll(fdset, 1, -1) < 0) {
+                    ROS_ERROR_NAMED(NAME, "monitor entity poll error: %s\n", gpio_, strerror(errno));
                     continue;
                 }
 
-                if (mq_send(entity_mqd_, 0, 0, 0) < 0) {
-                    ROS_ERROR_NAMED(NAME, "monitor entity mq send error: %s\n", strerror(errno));
+                if (fdset[0].revents & POLLPRI) {
+                    lseek(fdset[0].fd, 0, SEEK_SET);
+                    if (read(fdset[0].fd, &val, 1) < 0) {
+                        ROS_ERROR_NAMED(NAME, "monitor entity read gpio %d value error: %s\n", gpio_, strerror(errno));
+                        continue;
+                    }
+
+                    if (mq_send(entity_mqd_, &val, 1, 0) < 0) {
+                        ROS_ERROR_NAMED(NAME, "monitor entity mq send error: %s\n", strerror(errno));
+                    }
                 }
             }
 
@@ -263,7 +284,7 @@ private:
 
 HwCommGPIO::HwCommGPIO(const uint32_t& gpio)
     : gpio_(gpio),
-      irq_monitor_(0)
+      irq_monitor_(new IrqMonitor(gpio))
 {
     exportGPIO(gpio_);
 }
