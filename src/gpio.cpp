@@ -97,12 +97,17 @@ int32_t manipulateGPIOFd(const uint32_t gpio, const char* const op)
     return 0;
 }
 
-int32_t unexportGPIO(const uint32_t gpio)
+int32_t existGPIO(const uint32_t gpio)
 {
     char gpio_name[MAX_BUF_LEN] = {0};
     snprintf(gpio_name, sizeof(gpio_name), "%s/gpio%d", SYSFS_GPIO_DIR, gpio);
     struct stat sb;
-    if ((0 == stat(gpio_name, &sb)) && (S_ISDIR(sb.st_mode))) {
+    return ((0 == stat(gpio_name, &sb)) && (S_ISDIR(sb.st_mode))) ? 0 : -1;
+}
+
+int32_t unexportGPIO(const uint32_t gpio)
+{
+    if (0 == existGPIO(gpio)) {
         char buf[MAX_BUF_LEN] = {0};
         snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/unexport");
         return manipulateGPIOFd(gpio, buf);
@@ -112,11 +117,12 @@ int32_t unexportGPIO(const uint32_t gpio)
 
 int32_t exportGPIO(const uint32_t gpio)
 {
-    unexportGPIO(gpio);
-
-    char buf[MAX_BUF_LEN] = {0};
-    snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/export");
-    return manipulateGPIOFd(gpio, buf);
+    if (0 != existGPIO(gpio)) {
+        char buf[MAX_BUF_LEN] = {0};
+        snprintf(buf, sizeof(buf), "%s%s", SYSFS_GPIO_DIR, "/export");
+        return manipulateGPIOFd(gpio, buf);
+    }
+    return 0;
 }
 
 } // namespace
