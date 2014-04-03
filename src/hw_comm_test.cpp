@@ -19,6 +19,8 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
 
     virtual void handleIrq()
     {
+        fprintf(stderr, "=====================================\n");
+
         uint8_t a_x_h, a_x_l;
         uint8_t a_y_h, a_y_l;
         uint8_t a_z_h, a_z_l;
@@ -33,12 +35,12 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
         uint8_t g_x_h, g_x_l;
         uint8_t g_y_h, g_y_l;
         uint8_t g_z_h, g_z_l;
-        g_x_h = i2c.readByte(HMC5883L_ADDR, 0x43);
-        g_x_l = i2c.readByte(HMC5883L_ADDR, 0x44);
-        g_y_h = i2c.readByte(HMC5883L_ADDR, 0x45);
-        g_y_l = i2c.readByte(HMC5883L_ADDR, 0x46);
-        g_z_h = i2c.readByte(HMC5883L_ADDR, 0x47);
-        g_z_l = i2c.readByte(HMC5883L_ADDR, 0x48);
+        g_x_h = i2c.readByte(MPU6050_ADDR, 0x43);
+        g_x_l = i2c.readByte(MPU6050_ADDR, 0x44);
+        g_y_h = i2c.readByte(MPU6050_ADDR, 0x45);
+        g_y_l = i2c.readByte(MPU6050_ADDR, 0x46);
+        g_z_h = i2c.readByte(MPU6050_ADDR, 0x47);
+        g_z_l = i2c.readByte(MPU6050_ADDR, 0x48);
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", g_x_h, g_x_l, g_y_h, g_y_l, g_z_h, g_z_l);
 
         uint8_t m_x_h, m_x_l;
