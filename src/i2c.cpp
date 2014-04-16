@@ -88,5 +88,17 @@ uint8_t HwCommI2C::readByte(const uint8_t dev_addr, const uint8_t reg_addr)
     return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_byte_data(fd_, reg_addr) : 0);
 }
 
+int32_t HwCommI2C::writeBlockData(const uint8_t dev_addr, const uint8_t reg_addr,
+                                  const uint8_t length, const uint8_t* values)
+{
+    return (((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr))
+             && (0 == i2c_smbus_write_block_data(fd_, reg_addr, length, values))) ? 0 : -1);
+}
+
+int32_t HwCommI2C::readBlockData(const uint8_t dev_addr, const uint8_t reg_addr, uint8_t* values)
+{
+    return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_block_data(fd_, reg_addr, values) : 0);
+}
+
 } // namespace i2c
 } // namespace hw_comm

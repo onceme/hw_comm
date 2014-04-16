@@ -11,11 +11,11 @@
 
 struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
 {
-    Handler()
-        : i2c("/dev/i2c-1")
+    Handler(hw_comm::i2c::HwCommI2C& i2c_dev)
+        : i2c(i2c_dev)
     {}
 
-    hw_comm::i2c::HwCommI2C i2c;
+    hw_comm::i2c::HwCommI2C& i2c;
 
     virtual void handleIrq()
     {
@@ -30,7 +30,17 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
         a_y_l = i2c.readByte(MPU6050_ADDR, 0x3E);
         a_z_h = i2c.readByte(MPU6050_ADDR, 0x3E);
         a_z_l = i2c.readByte(MPU6050_ADDR, 0x3F);
+#if 1
+        uint16_t ax = a_x_h;
+        ax = (ax << 8) | a_x_l;
+        uint16_t ay = a_y_h;
+        ay = (ay << 8) | a_y_l;
+        uint16_t az = a_z_h;
+        az = (az << 8) | a_z_l;
+        fprintf(stderr, "%d, %d, %d\n", ax, ay, az);
+#else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", a_x_h, a_x_l, a_y_h, a_y_l, a_z_h, a_z_l);
+#endif
 
         uint8_t g_x_h, g_x_l;
         uint8_t g_y_h, g_y_l;
@@ -41,7 +51,17 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
         g_y_l = i2c.readByte(MPU6050_ADDR, 0x46);
         g_z_h = i2c.readByte(MPU6050_ADDR, 0x47);
         g_z_l = i2c.readByte(MPU6050_ADDR, 0x48);
+#if 1
+        uint16_t gx = g_x_h;
+        gx = (gx << 8) | g_x_l;
+        uint16_t gy = g_y_h;
+        gy = (gy << 8) | g_y_l;
+        uint16_t gz = g_z_h;
+        gz = (gz << 8) | g_z_l;
+        fprintf(stderr, "%d, %d, %d\n", gx, gy, gz);
+#else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", g_x_h, g_x_l, g_y_h, g_y_l, g_z_h, g_z_l);
+#endif
 
         uint8_t m_x_h, m_x_l;
         uint8_t m_y_h, m_y_l;
@@ -98,7 +118,7 @@ int main(int argc, char** argv)
     fprintf(stderr, "hello3\n");
     gpio.setEdge(hw_comm::gpio::GPIO_EDGE_BOTH);
     fprintf(stderr, "hello4\n");
-    Handler t;
+    Handler t(i2c);
     gpio.addIrqHandler(t);
     fprintf(stderr, "hello5\n");
     gpio.waitIrq();
