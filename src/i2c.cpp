@@ -77,13 +77,24 @@ HwCommI2C::~HwCommI2C()
     }
 }
 
-int32_t HwCommI2C::writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value)
+int32_t HwCommI2C::writeByte(const uint8_t dev_addr, const uint8_t value)
+{
+    return (((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr))
+             && (0 == i2c_smbus_write_byte(fd_, value))) ? 0 : -1);
+}
+
+uint8_t HwCommI2C::readByte(const uint8_t dev_addr)
+{
+    return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_byte(fd_) : 0);
+}
+
+int32_t HwCommI2C::writeByteData(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value)
 {
     return (((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr))
              && (0 == i2c_smbus_write_byte_data(fd_, reg_addr, value))) ? 0 : -1);
 }
 
-uint8_t HwCommI2C::readByte(const uint8_t dev_addr, const uint8_t reg_addr)
+uint8_t HwCommI2C::readByteData(const uint8_t dev_addr, const uint8_t reg_addr)
 {
     return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_byte_data(fd_, reg_addr) : 0);
 }

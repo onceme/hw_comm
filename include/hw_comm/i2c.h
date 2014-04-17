@@ -43,8 +43,11 @@ class HwCommI2CBase
 public:
     virtual ~HwCommI2CBase() {}
 
-    virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value) = 0;
-    virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr) = 0;
+    virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t value) = 0;
+    virtual uint8_t readByte(const uint8_t dev_addr) = 0;
+
+    virtual int32_t writeByteData(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value) = 0;
+    virtual uint8_t readByteData(const uint8_t dev_addr, const uint8_t reg_addr) = 0;
 
     virtual int32_t writeBlockData(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t length, const uint8_t* values) = 0;
     virtual int32_t readBlockData(const uint8_t dev_addr, const uint8_t reg_addr, uint8_t* values) = 0;
@@ -56,8 +59,11 @@ public:
     explicit HwCommI2C(const char* dev_name);
     virtual ~HwCommI2C();
 
-    virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value);
-    virtual uint8_t readByte(const uint8_t dev_addr, const uint8_t reg_addr);
+    virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t value);
+    virtual uint8_t readByte(const uint8_t dev_addr);
+
+    virtual int32_t writeByteData(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t value);
+    virtual uint8_t readByteData(const uint8_t dev_addr, const uint8_t reg_addr);
 
     virtual int32_t writeBlockData(const uint8_t dev_addr, const uint8_t reg_addr, const uint8_t length, const uint8_t* values);
     virtual int32_t readBlockData(const uint8_t dev_addr, const uint8_t reg_addr, uint8_t* values);
