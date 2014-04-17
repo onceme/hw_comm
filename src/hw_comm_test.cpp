@@ -65,18 +65,7 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
 #else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", g_x_h, g_x_l, g_y_h, g_y_l, g_z_h, g_z_l);
 #endif
-
-        uint8_t m_x_h, m_x_l;
-        uint8_t m_y_h, m_y_l;
-        uint8_t m_z_h, m_z_l;
-        m_x_h = i2c.readByteData(MS5611_ADDR, 0x49);
-        m_x_l = i2c.readByteData(MS5611_ADDR, 0x4A);
-        m_y_h = i2c.readByteData(MS5611_ADDR, 0x4E);
-        m_y_l = i2c.readByteData(MS5611_ADDR, 0x4F);
-        m_z_h = i2c.readByteData(MS5611_ADDR, 0x4C);
-        m_z_l = i2c.readByteData(MS5611_ADDR, 0x4D);
-        fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", m_x_h, m_x_l, m_y_h, m_y_l, m_z_h, m_z_l);
-
+#if 0
         uint8_t values[BUF_SIZE] = {0};
 
         uint32_t D1(0);
@@ -132,6 +121,7 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
                 TEMP / 100.0 * 9.0 / 5 + 32,
                 P / 100.0,
                 P / 100.0 + 55.5);
+#endif
     }
 };
 
