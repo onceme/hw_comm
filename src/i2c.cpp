@@ -99,16 +99,29 @@ uint8_t HwCommI2C::readByteData(const uint8_t dev_addr, const uint8_t reg_addr)
     return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_byte_data(fd_, reg_addr) : 0);
 }
 
+int32_t HwCommI2C::writeWordData(const uint8_t dev_addr, const uint8_t reg_addr, const uint16_t value)
+{
+    uint8_t values[2] = {0};
+    return writeBlockData(dev_addr, reg_addr, 2, values);
+}
+
+uint16_t HwCommI2C::readWordData(const uint8_t dev_addr, const uint8_t reg_addr)
+{
+    uint8_t values[2] = {0};
+    return (0 > readBlockData(dev_addr, reg_addr, 2, values)) ? 0 : ((values[0] << 8) | values[1]);
+}
+
 int32_t HwCommI2C::writeBlockData(const uint8_t dev_addr, const uint8_t reg_addr,
                                   const uint8_t length, const uint8_t* values)
 {
     return (((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr))
-             && (0 == i2c_smbus_write_block_data(fd_, reg_addr, length, values))) ? 0 : -1);
+             && (0 == i2c_smbus_write_i2c_block_data(fd_, reg_addr, length, values))) ? 0 : -1);
 }
 
-int32_t HwCommI2C::readBlockData(const uint8_t dev_addr, const uint8_t reg_addr, uint8_t* values)
+int32_t HwCommI2C::readBlockData(const uint8_t dev_addr, const uint8_t reg_addr,
+                                 const uint8_t length, uint8_t* values)
 {
-    return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_block_data(fd_, reg_addr, values) : 0);
+    return ((0 == i2cDevIoctl(fd_, I2C_SLAVE, dev_addr_, dev_addr)) ? i2c_smbus_read_i2c_block_data(fd_, reg_addr, length, values) : 0);
 }
 
 } // namespace i2c

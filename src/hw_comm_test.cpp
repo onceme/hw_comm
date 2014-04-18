@@ -65,63 +65,62 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
 #else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", g_x_h, g_x_l, g_y_h, g_y_l, g_z_h, g_z_l);
 #endif
-#if 0
+        uint8_t m_x_h, m_x_l;
+        uint8_t m_y_h, m_y_l;
+        uint8_t m_z_h, m_z_l;
+        m_x_h = i2c.readByteData(MPU6050_ADDR, 0x49);
+        m_x_l = i2c.readByteData(MPU6050_ADDR, 0x4A);
+        m_y_h = i2c.readByteData(MPU6050_ADDR, 0x4D);
+        m_y_l = i2c.readByteData(MPU6050_ADDR, 0x4E);
+        m_z_h = i2c.readByteData(MPU6050_ADDR, 0x4B);
+        m_z_l = i2c.readByteData(MPU6050_ADDR, 0x4C);
+#if 1
+        uint16_t mx = m_x_h;
+        mx = (mx << 8) | m_x_l;
+        uint16_t my = m_y_h;
+        my = (my << 8) | m_y_l;
+        uint16_t mz = m_z_h;
+        mz = (mz << 8) | m_z_l;
+        fprintf(stderr, "%d, %d, %d\n", mx, my, mz);
+#else
+        fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", m_x_h, m_x_l, m_y_h, m_y_l, m_z_h, m_z_l);
+#endif
+
         uint8_t values[BUF_SIZE] = {0};
 
         uint32_t D1(0);
         uint32_t D2(0);
         i2c.writeByte(MS5611_ADDR, 0x48);
-        i2c.readBlockData(MS5611_ADDR, 0x00, values);
+        usleep(50 * 1000);
+        i2c.readBlockData(MS5611_ADDR, 0x00, BUF_SIZE, values);
         D1 = (values[0] << 16) | (values[1] << 8) | values[2];
 
         memset(values, 0, BUF_SIZE);
         i2c.writeByte(MS5611_ADDR, 0x58);
-        i2c.readBlockData(MS5611_ADDR, 0x00, values);
+        usleep(50 * 1000);
+        i2c.readBlockData(MS5611_ADDR, 0x00, BUF_SIZE, values);
         D2 = (values[0] << 16) | (values[1] << 8) | values[2];
 
-        uint16_t C1(0);
-        uint16_t C2(0);
-        uint16_t C3(0);
-        uint16_t C4(0);
-        uint16_t C5(0);
-        uint16_t C6(0);
+        uint16_t C1 = i2c.readWordData(MS5611_ADDR, 0xA2);
+        uint16_t C2 = i2c.readWordData(MS5611_ADDR, 0xA4);
+        uint16_t C3 = i2c.readWordData(MS5611_ADDR, 0xA6);
+        uint16_t C4 = i2c.readWordData(MS5611_ADDR, 0xA8);
+        uint16_t C5 = i2c.readWordData(MS5611_ADDR, 0xAA);
+        uint16_t C6 = i2c.readWordData(MS5611_ADDR, 0xAC);
 
-        memset(values, 0, BUF_SIZE);
-        i2c.readBlockData(MS5611_ADDR, 0xA2, values);
-        C1 = (values[0] << 8) | values[1];
+        int64_t dT = D2 - C5 * static_cast<int64_t>(256);
+        int64_t TEMP = 2000 + dT * C6 / 8388608;
+        int64_t OFF = C2 * static_cast<int64_t>(65536) + (C4 * dT) / 128;
+        int64_t SENS = C1 * static_cast<int64_t>(32768) + (C3 * dT) / 256;
+        int64_t P = (D1 * SENS / 2097152.0 - OFF) / 32768;
 
-        memset(values, 0, BUF_SIZE);
-        i2c.readBlockData(MS5611_ADDR, 0xA4, values);
-        C2 = (values[0] << 8) | values[1];
-
-        memset(values, 0, BUF_SIZE);
-        i2c.readBlockData(MS5611_ADDR, 0xA6, values);
-        C3 = (values[0] << 8) | values[1];
-
-        memset(values, 0, BUF_SIZE);
-        i2c.readBlockData(MS5611_ADDR, 0xA8, values);
-        C4 = (values[0] << 8) | values[1];
-
-        memset(values, 0, BUF_SIZE);
-        i2c.readBlockData(MS5611_ADDR, 0xAA, values);
-        C5 = (values[0] << 8) | values[1];
-
-        memset(values, 0, BUF_SIZE);
-        i2c.readBlockData(MS5611_ADDR, 0xAC, values);
-        C6 = (values[0] << 8) | values[1];
-
-        int32_t dT = D2 - C5 * 256;
-        int32_t TEMP = 2000 + dT * C6 / 8388608;
-        int64_t OFF = C2 * 65536 + (C4 * dT) / 128;
-        int64_t SENS = C1 * 32768 + (C3 * dT) / 256;
-        int32_t P = (D1 * SENS / 2097152 - OFF) / 32768;
-
+//        fprintf(stderr, "dT=%d, TEMP=%lld, OFF=%lld, SENS=%lld, P=%d\n", dT, TEMP, OFF, SENS, P);
+//        fprintf(stderr, "D1=%d, D2=%d, C1=%d, C2=%d, C3=%d, C4=%d, C5=%d, C6=%d\n", D1, D2, C1, C2, C3, C4, C5, C6);
         fprintf(stderr, "Temperature: %f, Temperature F: %.2f, Pressure: %f, Pressure Adjusted: %.2f\n",
                 TEMP / 100.0,
                 TEMP / 100.0 * 9.0 / 5 + 32,
                 P / 100.0,
                 P / 100.0 + 55.5);
-#endif
     }
 };
 
