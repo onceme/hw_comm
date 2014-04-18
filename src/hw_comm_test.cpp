@@ -40,7 +40,7 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
         ay = (ay << 8) | a_y_l;
         uint16_t az = a_z_h;
         az = (az << 8) | a_z_l;
-        fprintf(stderr, "%d, %d, %d\n", ax, ay, az);
+        fprintf(stderr, "accelerator: x=%d, y=%d, z=%d\n", ax, ay, az);
 #else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", a_x_h, a_x_l, a_y_h, a_y_l, a_z_h, a_z_l);
 #endif
@@ -61,7 +61,7 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
         gy = (gy << 8) | g_y_l;
         uint16_t gz = g_z_h;
         gz = (gz << 8) | g_z_l;
-        fprintf(stderr, "%d, %d, %d\n", gx, gy, gz);
+        fprintf(stderr, "gyro: x=%d, y=%d, z=%d\n", gx, gy, gz);
 #else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", g_x_h, g_x_l, g_y_h, g_y_l, g_z_h, g_z_l);
 #endif
@@ -81,7 +81,7 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
         my = (my << 8) | m_y_l;
         uint16_t mz = m_z_h;
         mz = (mz << 8) | m_z_l;
-        fprintf(stderr, "%d, %d, %d\n", mx, my, mz);
+        fprintf(stderr, "magnetometer: x=%d, y=%d, z=%d\n", mx, my, mz);
 #else
         fprintf(stderr, "%d, %d, %d, %d, %d, %d\n", m_x_h, m_x_l, m_y_h, m_y_l, m_z_h, m_z_l);
 #endif
