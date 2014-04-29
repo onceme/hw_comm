@@ -14,11 +14,11 @@
 
 struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
 {
-    Handler(hw_comm::i2c::HwCommI2C& i2c_dev)
+    Handler(hw_comm::i2c::HwCommI2CBase& i2c_dev)
         : i2c(i2c_dev)
     {}
 
-    hw_comm::i2c::HwCommI2C& i2c;
+    hw_comm::i2c::HwCommI2CBase& i2c;
 
     virtual void handleIrq()
     {

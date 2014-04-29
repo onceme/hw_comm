@@ -101,7 +101,7 @@ target_link_libraries(hw_comm ${catkin_LIBRARIES})
 ## Declare a cpp executable
 # add_executable(hw_comm_node src/hw_comm_node.cpp)
 add_executable(hw_comm_test
-  src/hw_comm_test.cpp
+  src/test/hw_comm_test.cpp
 )
 target_link_libraries(hw_comm_test hw_comm)
 
