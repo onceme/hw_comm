@@ -93,8 +93,9 @@ include_directories(include)
 
 ## Declare a cpp library
 add_library(hw_comm
-  src/i2c.cpp
   src/gpio.cpp
+  src/i2c.cpp
+  src/spi.cpp
 )
 target_link_libraries(hw_comm ${catkin_LIBRARIES})
 
