@@ -67,14 +67,15 @@ public:
     virtual int32_t setSpeed(const uint32_t speed) = 0;
     virtual int32_t getSpeed(uint32_t& speed) = 0;
 
-    virtual int32_t transmit(const uint8_t* buffer, const uint32_t length) = 0;
-    virtual int32_t receive(uint8_t* buffer, const uint32_t length) = 0;
+    virtual int32_t transmit(const uint8_t* tx, const uint32_t tx_len) = 0;
+    virtual int32_t receive(uint8_t* rx, const uint32_t rx_len) = 0;
+    virtual int32_t message(const uint8_t* tx, const uint32_t tx_len, uint8_t* rx, const uint32_t rx_len) = 0;
 };
 
 class HwCommSPI : public HwCommSPIBase
 {
 public:
-    explicit HwCommSPI(const char* dev_name);
+    explicit HwCommSPI(const char* bus_name);
     virtual ~HwCommSPI();
 
     virtual int32_t setMode(const SPIMode& mode);
@@ -89,8 +90,12 @@ public:
     virtual int32_t setSpeed(const uint32_t speed);
     virtual int32_t getSpeed(uint32_t& speed);
 
-    virtual int32_t transmit(const uint8_t* buffer, const uint32_t length);
-    virtual int32_t receive(uint8_t* buffer, const uint32_t length);
+    virtual int32_t transmit(const uint8_t* tx, const uint32_t tx_len);
+    virtual int32_t receive(uint8_t* rx, const uint32_t rx_len);
+    virtual int32_t message(const uint8_t* tx, const uint32_t tx_len, uint8_t* rx, const uint32_t rx_len);
+
+private:
+    int32_t fd_;
 };
 
 } // namespace spi

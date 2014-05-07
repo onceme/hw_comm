@@ -33,68 +33,148 @@
  */
 
 #include <linux/spi/spidev.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 #include <ros/console.h>
 #include "hw_comm/spi.h"
 
 namespace hw_comm {
 namespace spi {
 
-HwCommSPI::HwCommSPI(const char* dev_name)
+namespace {
+
+const char* const NAME = "HwCommSPI";
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
+template <typename T>
+int32_t spiDevIoctl(const int32_t& fd, const int32_t& req, T& arg)
 {
+    if (ioctl(fd, req, &arg) < 0) {
+        ROS_ERROR_NAMED(NAME, "ioctl spi device error: %s\n", strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+} // namespace
+
+HwCommSPI::HwCommSPI(const char* bus_name)
+    : fd_(-1)
+{
+    fd_ = open(bus_name, O_RDWR);
+    if (fd_ < 0) {
+        ROS_ERROR_NAMED(NAME, "open spi bus %s error: %s\n", bus_name, strerror(errno));
+    }
 }
 
 HwCommSPI::~HwCommSPI()
 {
+    if (close(fd_) < 0) {
+        ROS_ERROR_NAMED(NAME, "close spi bus error: %s\n", strerror(errno));
+    }
 }
 
 int32_t HwCommSPI::setMode(const SPIMode& mode)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_WR_MODE, mode)) ? 0 : -1);
 }
 
 int32_t HwCommSPI::getMode(SPIMode& mode)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_RD_MODE, mode)) ? 0 : -1);
 }
 
-int32_t HwCommSPI::setLSB(const SPISB& mode)
+int32_t HwCommSPI::setLSB(const SPISB& sb)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_WR_LSB_FIRST, sb)) ? 0 : -1);
 }
 
-int32_t HwCommSPI::getLSB(SPISB& mode)
+int32_t HwCommSPI::getLSB(SPISB& sb)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_RD_LSB_FIRST, sb)) ? 0 : -1);
 }
 
 int32_t HwCommSPI::setBitsPerWord(const uint8_t bpw)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_WR_BITS_PER_WORD, bpw)) ? 0 : -1);
 }
 
 int32_t HwCommSPI::getBitsPerWord(uint8_t& bpw)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_RD_BITS_PER_WORD, bpw)) ? 0 : -1);
 }
 
 int32_t HwCommSPI::setSpeed(const uint32_t speed)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_WR_MAX_SPEED_HZ, speed)) ? 0 : -1);
 }
 
 int32_t HwCommSPI::getSpeed(uint32_t& speed)
 {
-    return 0;
+    return ((0 == spiDevIoctl(fd_, SPI_IOC_RD_MAX_SPEED_HZ, speed)) ? 0 : -1);
 }
 
-int32_t HwCommSPI::transmit(const uint8_t* buffer, const uint32_t length)
+int32_t HwCommSPI::transmit(const uint8_t* tx, const uint32_t tx_len)
 {
-    return 0;
+    struct spi_ioc_transfer xfer;
+    memset(&xfer, 0, sizeof(xfer));
+
+    // BWINA : external structure requires a __u64 to store the buffer pointer
+    xfer.tx_buf = reinterpret_cast<__u64>(tx);
+    xfer.len = tx_len;
+
+    int32_t ret = ioctl(fd_, SPI_IOC_MESSAGE(1), &xfer);
+
+    if (ret < 0) {
+        ROS_ERROR_NAMED(NAME, "ioctl spi transmit error: %s\n", strerror(errno));
+    }
+
+    return ret;
 }
 
-int32_t HwCommSPI::receive(uint8_t* buffer, const uint32_t length)
+int32_t HwCommSPI::receive(uint8_t* rx, const uint32_t rx_len)
 {
-    return 0;
+    int32_t read_len = read(fd_, rx, MIN(rx_len, SSIZE_MAX));
+
+    if (MIN(rx_len, SSIZE_MAX) != read_len) {
+        ROS_ERROR_NAMED(NAME, "ioctl spi receive error: %s\n", strerror(errno));
+    }
+
+    return read_len;
+}
+
+int32_t HwCommSPI::message(const uint8_t* tx, const uint32_t tx_len, uint8_t* rx, const uint32_t rx_len)
+{
+#if 1 // half duplex
+    struct spi_ioc_transfer xfer[2];
+    memset(&xfer, 0, sizeof(xfer));
+
+    // BWINA : external structure requires a __u64 to store the buffer pointer
+    xfer[0].tx_buf = reinterpret_cast<__u64>(tx);
+    xfer[0].len = tx_len;
+
+    xfer[1].rx_buf = reinterpret_cast<__u64>(rx);
+    xfer[1].len = rx_len;
+
+    int32_t ret = ioctl(fd_, SPI_IOC_MESSAGE(2), &xfer);
+#else // full duplex
+    struct spi_ioc_transfer xfer;
+    memset(&xfer, 0, sizeof(xfer));
+
+    // BWINA : external structure requires a __u64 to store the buffer pointer
+    xfer.tx_buf = reinterpret_cast<__u64>(tx);
+    xfer.rx_buf = reinterpret_cast<__u64>(rx);
+    xfer.len = MAX(tx_len, rx_len);
+
+    int32_t ret = ioctl(fd_, SPI_IOC_MESSAGE(1), &xfer);
+#endif
+    if (ret < 0) {
+        ROS_ERROR_NAMED(NAME, "ioctl spi message error: %s\n", strerror(errno));
+    }
+
+    return ret;
 }
 
 } // namespace spi
