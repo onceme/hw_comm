@@ -63,7 +63,7 @@ int32_t doOpen(const uint32_t gpio, const char* const op, int32_t flag)
 
 int32_t doWrite(int32_t fd, const char* buf, uint32_t len)
 {
-    uint32_t wrote_len(0);
+    int32_t wrote_len(0);
     uint32_t total_len(0);
 
     while (total_len < len) {
