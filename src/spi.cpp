@@ -138,7 +138,7 @@ int32_t HwCommSPI::receive(uint8_t* rx, const uint32_t rx_len)
 {
     int32_t read_len = read(fd_, rx, MIN(rx_len, SSIZE_MAX));
 
-    if (MIN(rx_len, SSIZE_MAX) != read_len) {
+    if ((read_len < 0) || (MIN(rx_len, SSIZE_MAX) != static_cast<uint32_t>(read_len))) {
         ROS_ERROR_NAMED(NAME, "ioctl spi receive error: %s\n", strerror(errno));
     }
 
