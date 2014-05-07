@@ -59,7 +59,7 @@ public:
 class HwCommI2C : public HwCommI2CBase
 {
 public:
-    explicit HwCommI2C(const char* dev_name);
+    explicit HwCommI2C(const char* bus_name);
     virtual ~HwCommI2C();
 
     virtual int32_t writeByte(const uint8_t dev_addr, const uint8_t value);

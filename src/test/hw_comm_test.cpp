@@ -127,7 +127,7 @@ struct Handler : public hw_comm::gpio::HwCommGPIOIrqHandler
 int main(int argc, char** argv)
 {
     hw_comm::i2c::HwCommI2C i2c("/dev/i2c-1");
-    fprintf(stderr, "hello0\n");
+    fprintf(stderr, "i2c-1 initialized\n");
 
     i2c.writeByteData(MPU6050_ADDR, 0x6B, 0x80);
     usleep(5 * 1000);
@@ -160,19 +160,17 @@ int main(int argc, char** argv)
     i2c.writeByteData(MPU6050_ADDR, 0x27, 0x86);
 
     i2c.writeByte(MS5611_ADDR, 0x1E);
+    fprintf(stderr, "MS5611 initialized\n");
 
-    fprintf(stderr, "hello1\n");
     hw_comm::gpio::HwCommGPIO gpio(4);
-    fprintf(stderr, "hello2\n");
     gpio.setDirection(hw_comm::gpio::GPIO_DIRE_IN);
-    fprintf(stderr, "hello3\n");
     gpio.setEdge(hw_comm::gpio::GPIO_EDGE_BOTH);
-    fprintf(stderr, "hello4\n");
+    fprintf(stderr, "gpio initialized\n");
+
     Handler t(i2c);
     gpio.addIrqHandler(t);
-    fprintf(stderr, "hello5\n");
+    fprintf(stderr, "wait for irq\n");
     gpio.waitIrq();
-    fprintf(stderr, "hello6\n");
 
     return 0;
 }

@@ -66,14 +66,14 @@ HwCommI2C::HwCommI2C(const char* bus_name)
 {
     fd_ = open(bus_name, O_RDWR);
     if (fd_ < 0) {
-        ROS_ERROR_NAMED(NAME, "open i2c device error: %s\n", strerror(errno));
+        ROS_ERROR_NAMED(NAME, "open i2c bus %s error: %s\n", bus_name, strerror(errno));
     }
 }
 
 HwCommI2C::~HwCommI2C()
 {
     if (close(fd_) < 0) {
-        ROS_ERROR_NAMED(NAME, "close i2c device error: %s\n", strerror(errno));
+        ROS_ERROR_NAMED(NAME, "close i2c bus error: %s\n", strerror(errno));
     }
 }
 
