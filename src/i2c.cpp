@@ -102,6 +102,8 @@ uint8_t HwCommI2C::readByteData(const uint8_t dev_addr, const uint8_t reg_addr)
 int32_t HwCommI2C::writeWordData(const uint8_t dev_addr, const uint8_t reg_addr, const uint16_t value)
 {
     uint8_t values[2] = {0};
+    values[0] = value & 0x00FF;
+    values[1] = value & 0xFF00;
     return writeBlockData(dev_addr, reg_addr, 2, values);
 }
 
